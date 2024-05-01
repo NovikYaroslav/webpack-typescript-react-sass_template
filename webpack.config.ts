@@ -1,34 +1,37 @@
 import path from 'path';
 import webpack from 'webpack';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
+import type { Configuration as DevServerConfiguration } from 'webpack-dev-server';
 
 type Mode = 'production' | 'development';
 
 interface EnvVariables {
   mode: Mode
+  port: number
 }
 
 export default (env: any) => {
+  const devMode = env.mode === 'development'
   const config: webpack.Configuration = {
-    //  режим сборки production сжатый без дополнений.  development более развернутый с коментариями и дополнениями
+// Production build mode: compressed without extras. Development mode: more verbose with comments and extras.
     mode: env.mode || 'development',
-    // папка входа (из какого файла буду браться файлы для сборки)
+// Input directory (where files for compilation will be taken from).
     entry: path.resolve(__dirname, 'src', 'index.ts'),
-    // папка вывода (куда и как будет собирться сборка)
+// Output directory (where and how the build will be assembled).
     output: {
       path: path.resolve(__dirname, 'build'),
-      // название для файла сборки name-дефолтное название + contenthash сахар на основе содержания входного файла
+// Name for the build file: default name + content hash based on the input file content.
       filename: '[name].[contenthash].js',
-      // чистит папку билд от предыдущих файлов сборки
+// Clean the build directory from previous build files.
       clean: true,
     },
     plugins: [
-      // плагин для создания html файла в сборке
+// Plugin for creating an HTML file in the build.
       new HtmlWebpackPlugin({
         template: path.resolve(__dirname, 'public', 'index.html'),
       }),
-      //   плагин для отображения прогресса сборки в процентах (не рекомендуется для продакшена)
-      new webpack.ProgressPlugin(),
+// Plugin for displaying build progress in percentages (not recommended for production. slows down the build).
+      devMode ? new webpack.ProgressPlugin() : false,
     ],
     module: {
       rules: [
@@ -42,6 +45,13 @@ export default (env: any) => {
     resolve: {
       extensions: ['.tsx', '.ts', '.js'],
     },
+// Error tracking settings for development.
+    devtool: devMode ? 'inline-source-map' : false,
+// Settings for a live server depending on the port passed through the console via -- --env port=****.
+    devServer: devMode ? {
+      port: env.port ?? 3003,
+      open: true
+    } : undefined
   };
   
   return config
